@@ -28,6 +28,10 @@ router.get("/oauth/initiate", (req, res) => {
   res.json({ authUrl });
 });
 
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Backend is healthy" });
+});
+
 // Rota de callback para o OAuth
 router.get("/oauth-callback", async (req, res) => {
   const code = req.query.code;
