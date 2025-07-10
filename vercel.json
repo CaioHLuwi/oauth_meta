@@ -2,21 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.js",
+      "src": "oauth_meta/api/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/meta-ads/(.*)",
-      "dest": "/api/index.js"
+      "src": "oauth_meta/(.*)",
+      "dest": "meta-ads-backend/api/index.js"
     },
     {
       "src": "/oauth_meta/(.*)",
-      "dest": "/api/index.js"
+      "dest": "meta-ads-backend/api/index.js"
     }
   ]
 }
-
-
-
