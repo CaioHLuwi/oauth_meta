@@ -1,6 +1,6 @@
+
 const express = require("express");
 const axios = require("axios");
-const path = require("path");
 const router = express.Router();
 
 // Utility function to get environment variables
@@ -15,9 +15,6 @@ const getEnv = (key) => {
 const META_APP_ID = getEnv("META_APP_ID");
 const META_APP_SECRET = getEnv("META_APP_SECRET");
 const REDIRECT_URI = getEnv("REDIRECT_URI");
-
-// Serve static files from the 'public' directory
-router.use(express.static(path.join(__dirname, "../public")));
 
 // Health check endpoint
 router.get("/health", (req, res) => {
@@ -37,59 +34,116 @@ router.get("/oauth/initiate", (req, res) => {
 
 // OAuth callback endpoint
 router.get("/oauth-callback.html", async (req, res) => {
-    const { code, error, error_description } = req.query;
+  const { code } = req.query;
 
-    if (error) {
-        // If there's an error from Facebook, redirect to oauth-error.html with error details
-        return res.redirect(`/oauth_meta/oauth-error.html?error=${error}&error_description=${error_description}`);
-    }
+  if (!code) {
+    console.error("Authorization code not received.");
+    return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>OAuth Error</title></head>
+            <body>
+                <h1>Erro na Autenticação</h1>
+                <p>Código de autorização não recebido.</p>
+                <script>
+                    localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_ERROR\', message: \'Authorization code not received.\' }));
+                    window.close();
+                </script>
+            </body>
+            </html>
+        `);
+  }
 
-    if (!code) {
-        console.error("Authorization code not received.");
-        return res.redirect(`/oauth_meta/oauth-error.html?error=no_code&error_description=Authorization code not received.`);
-    }
+  if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
+    console.error("Missing environment variables for token exchange.");
+    return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>OAuth Error</title></head>
+            <body>
+                <h1>Erro na Autenticação</h1>
+                <p>Variáveis de ambiente ausentes para troca de token.</p>
+                <script>
+                    localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_ERROR\', message: \'Missing environment variables.\' }));
+                    window.close();
+                </script>
+            </body>
+            </html>
+        `);
+  }
 
-    if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
-        console.error("Missing environment variables for token exchange.");
-        return res.redirect(`/oauth_meta/oauth-error.html?error=env_missing&error_description=Missing environment variables for token exchange.`);
-    }
+  try {
+    const tokenResponse = await axios.get(
+      "https://graph.facebook.com/v23.0/oauth/access_token",
+      {
+        params: {
+          client_id: META_APP_ID,
+          client_secret: META_APP_SECRET,
+          redirect_uri: REDIRECT_URI,
+          code: code,
+        },
+      }
+    );
 
-    try {
-        const tokenResponse = await axios.get(
-            "https://graph.facebook.com/v23.0/oauth/access_token",
-            {
-                params: {
-                    client_id: META_APP_ID,
-                    client_secret: META_APP_SECRET,
-                    redirect_uri: REDIRECT_URI,
-                    code: code,
-                },
-            }
-        );
+    const accessToken = tokenResponse.data.access_token;
+    console.log(
+      "Access Token obtained:",
+      accessToken ? accessToken.substring(0, 20) + "..." : "N/A"
+    );
 
-        const accessToken = tokenResponse.data.access_token;
-        console.log(
-            "Access Token obtained:",
-            accessToken ? accessToken.substring(0, 20) + "..." : "N/A"
-        );
+    res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Autenticação Concluída</title>
+                <style>
+                    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+                    .container { background-color: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+                    .success { color: #4CAF50; font-weight: bold; }
+                    .error { color: #F44336; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Autenticação Concluída com Sucesso!</h1>
+                    <p class="success">Access Token: ${accessToken.substring(0, 50)}...</p>
+                    <p>Esta janela será fechada automaticamente.</p>
+                    <script>
+                        localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_SUCCESS\', accessToken: \'${accessToken}\' }));
+                        setTimeout(() => { window.close(); }, 100);
+                    </script>
+                </div>
+            </body>
+            </html>
+        `);
+  } catch (error) {
+    console.error(
+      "Error exchanging code for access token:",
+      error.response ? error.response.data : error.message
+    );
+    const errorMessage =
+      error.response &&
+      error.response.data &&
+      error.response.data.error &&
+      error.response.data.error.message
+        ? error.response.data.error.message
+        : "Erro desconhecido ao obter access token.";
 
-        // Redirect to a static HTML page that handles localStorage communication
-        res.redirect(`/oauth_meta/oauth-result.html?access_token=${accessToken}`);
-    } catch (err) {
-        console.error(
-            "Error exchanging code for access token:",
-            err.response ? err.response.data : err.message
-        );
-        const errorMessage = err.response && err.response.data && err.response.data.error && err.response.data.error.message
-            ? err.response.data.error.message
-            : "Unknown error obtaining access token.";
-        return res.redirect(`/oauth_meta/oauth-error.html?error=token_exchange_failed&error_description=${encodeURIComponent(errorMessage)}`);
-    }
-});
-
-// Static HTML page to handle localStorage communication
-router.get("/oauth-result.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/oauth-result.html"));
+    res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>OAuth Error</title></head>
+            <body>
+                <h1>Erro na Autenticação</h1>
+                <p class="error">Erro ao obter access token: ${errorMessage}</p>
+                <script>
+                    localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_ERROR\', message: \'Error obtaining access token: ${errorMessage}\' }));
+                    window.close();
+                </script>
+            </body>
+            </html>
+        `);
+  }
 });
 
 // Test token endpoint (for debugging)
@@ -120,3 +174,5 @@ router.get("/test-token", async (req, res) => {
 });
 
 module.exports = router;
+
+
