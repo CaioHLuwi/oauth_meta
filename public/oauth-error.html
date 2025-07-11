@@ -1,0 +1,14 @@
+
+<!DOCTYPE html>
+<html>
+<head><title>OAuth Error</title></head>
+<body>
+    <h1>Erro na Autenticação</h1>
+    <p>Ocorreu um erro durante o processo de autenticação.</p>
+    <script>
+        localStorage.setItem('meta_ads_oauth_result', JSON.stringify({ type: 'META_ADS_OAUTH_ERROR', message: 'Ocorreu um erro durante o processo de autenticação.' }));
+        window.close();
+    </script>
+</body>
+</html>
+
