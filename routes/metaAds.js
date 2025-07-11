@@ -1,4 +1,3 @@
-
 const express = require("express");
 const axios = require("axios");
 const path = require("path");
@@ -38,46 +37,54 @@ router.get("/oauth/initiate", (req, res) => {
 
 // OAuth callback endpoint
 router.get("/oauth-callback.html", async (req, res) => {
-  const { code } = req.query;
+    const { code, error, error_description } = req.query;
 
-  if (!code) {
-    console.error("Authorization code not received.");
-    return res.sendFile(path.join(__dirname, "../public/oauth-error.html"));
-  }
+    if (error) {
+        // If there's an error from Facebook, redirect to oauth-error.html with error details
+        return res.redirect(`/oauth_meta/oauth-error.html?error=${error}&error_description=${error_description}`);
+    }
 
-  if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
-    console.error("Missing environment variables for token exchange.");
-    return res.sendFile(path.join(__dirname, "../public/oauth-error.html"));
-  }
+    if (!code) {
+        console.error("Authorization code not received.");
+        return res.redirect(`/oauth_meta/oauth-error.html?error=no_code&error_description=Authorization code not received.`);
+    }
 
-  try {
-    const tokenResponse = await axios.get(
-      "https://graph.facebook.com/v23.0/oauth/access_token",
-      {
-        params: {
-          client_id: META_APP_ID,
-          client_secret: META_APP_SECRET,
-          redirect_uri: REDIRECT_URI,
-          code: code,
-        },
-      }
-    );
+    if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
+        console.error("Missing environment variables for token exchange.");
+        return res.redirect(`/oauth_meta/oauth-error.html?error=env_missing&error_description=Missing environment variables for token exchange.`);
+    }
 
-    const accessToken = tokenResponse.data.access_token;
-    console.log(
-      "Access Token obtained:",
-      accessToken ? accessToken.substring(0, 20) + "..." : "N/A"
-    );
+    try {
+        const tokenResponse = await axios.get(
+            "https://graph.facebook.com/v23.0/oauth/access_token",
+            {
+                params: {
+                    client_id: META_APP_ID,
+                    client_secret: META_APP_SECRET,
+                    redirect_uri: REDIRECT_URI,
+                    code: code,
+                },
+            }
+        );
 
-    // Redirect to a static HTML page that handles localStorage communication
-    res.redirect(`/oauth_meta/oauth-result.html?access_token=${accessToken}`);
-  } catch (error) {
-    console.error(
-      "Error exchanging code for access token:",
-      error.response ? error.response.data : error.message
-    );
-    return res.sendFile(path.join(__dirname, "../public/oauth-error.html"));
-  }
+        const accessToken = tokenResponse.data.access_token;
+        console.log(
+            "Access Token obtained:",
+            accessToken ? accessToken.substring(0, 20) + "..." : "N/A"
+        );
+
+        // Redirect to a static HTML page that handles localStorage communication
+        res.redirect(`/oauth_meta/oauth-result.html?access_token=${accessToken}`);
+    } catch (err) {
+        console.error(
+            "Error exchanging code for access token:",
+            err.response ? err.response.data : err.message
+        );
+        const errorMessage = err.response && err.response.data && err.response.data.error && err.response.data.error.message
+            ? err.response.data.error.message
+            : "Unknown error obtaining access token.";
+        return res.redirect(`/oauth_meta/oauth-error.html?error=token_exchange_failed&error_description=${encodeURIComponent(errorMessage)}`);
+    }
 });
 
 // Static HTML page to handle localStorage communication
@@ -113,5 +120,3 @@ router.get("/test-token", async (req, res) => {
 });
 
 module.exports = router;
-
-
