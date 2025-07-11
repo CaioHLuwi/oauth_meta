@@ -1,6 +1,5 @@
 const express = require("express");
 const axios = require("axios");
-const path = require("path");
 const router = express.Router();
 
 // Carrega variáveis de ambiente do .env
@@ -20,24 +19,53 @@ router.get("/oauth/initiate", (req, res) => {
   res.json({ authUrl });
 });
 
-// Servir arquivo HTML estático para o callback
-router.get("/oauth-callback.html", (req, res) => {
+// Rota de callback para o OAuth - processa e redireciona
+router.get("/oauth-callback.html", async (req, res) => {
   const code = req.query.code;
   const error = req.query.error;
   const error_description = req.query.error_description;
 
-  // Se há um código, processar no backend e redirecionar com access token
-  if (code && !error) {
-    processOAuthCallback(code, res);
-    return;
+  // Se há erro, redirecionar para página de erro
+  if (error) {
+    return res.redirect(`/oauth_meta/oauth-result.html?error=${encodeURIComponent(error_description || error)}`);
   }
 
-  // Se há erro ou não há código, servir página HTML com parâmetros
+  // Se não há código, erro
+  if (!code) {
+    return res.redirect(`/oauth_meta/oauth-result.html?error=${encodeURIComponent('Código de autorização não recebido')}`);
+  }
+
+  // Verificar variáveis de ambiente
+  if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
+    return res.redirect(`/oauth_meta/oauth-result.html?error=${encodeURIComponent('Variáveis de ambiente não configuradas')}`);
+  }
+
+  try {
+    // Trocar código por access token
+    const tokenExchangeUrl = `https://graph.facebook.com/v23.0/oauth/access_token?client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&redirect_uri=${REDIRECT_URI}&code=${code}`;
+    const response = await axios.get(tokenExchangeUrl);
+    const accessToken = response.data.access_token;
+
+    // Redirecionar para página de sucesso com access token
+    res.redirect(`/oauth_meta/oauth-result.html?access_token=${encodeURIComponent(accessToken)}&code=${encodeURIComponent(code)}`);
+
+  } catch (error) {
+    console.error("Erro ao trocar código por token:", error.response?.data || error.message);
+    res.redirect(`/oauth_meta/oauth-result.html?error=${encodeURIComponent('Erro ao obter access token')}`);
+  }
+});
+
+// Página de resultado do OAuth (sem scripts inline)
+router.get("/oauth-result.html", (req, res) => {
+  const accessToken = req.query.access_token;
+  const code = req.query.code;
+  const error = req.query.error;
+
   const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Meta Ads OAuth Callback</title>
+    <title>Meta Ads OAuth Result</title>
     <meta charset="utf-8">
     <style>
         body {
@@ -59,223 +87,97 @@ router.get("/oauth-callback.html", (req, res) => {
     </style>
 </head>
 <body>
-    <div id="content">
-        ${error ? `
-            <div class="error">
-                <h2>Erro na Autenticação</h2>
-                <p>${error_description || error}</p>
-            </div>
-        ` : `
-            <div class="error">
-                <h2>Erro</h2>
-                <p>Código de autorização não recebido.</p>
-            </div>
-        `}
-    </div>
-
-    <script>
-        function sendMessageToParent(data) {
-            const origins = [
-                'https://otmizy.com',
-                'https://zeuz.otmizy.com', 
-                'http://localhost:3000',
-                window.location.origin
-            ];
-            
-            origins.forEach(origin => {
-                try {
-                    if (window.opener) {
-                        window.opener.postMessage(data, origin);
-                        console.log('Mensagem enviada para origem:', origin);
-                    }
-                } catch (e) {
-                    console.log('Falha ao enviar para origem:', origin, e);
-                }
-            });
-        }
-
-        sendMessageToParent({
-            type: 'META_ADS_OAUTH_ERROR',
-            error: '${error_description || error || 'Código de autorização não recebido'}'
-        });
-        
-        setTimeout(() => window.close(), 3000);
-    </script>
+    ${accessToken ? `
+        <div class="success">
+            <h2>Autenticação Concluída com Sucesso!</h2>
+            <p>Fechando esta janela...</p>
+            <div class="token">Access Token: ${accessToken.substring(0, 20)}...</div>
+        </div>
+    ` : `
+        <div class="error">
+            <h2>Erro na Autenticação</h2>
+            <p>${error || 'Erro desconhecido'}</p>
+        </div>
+    `}
+    
+    <script src="/oauth_meta/oauth-callback.js"></script>
 </body>
 </html>`;
 
   res.send(htmlContent);
 });
 
-// Função para processar o callback OAuth
-async function processOAuthCallback(code, res) {
-  if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
-    return sendErrorPage(res, "Variáveis de ambiente não configuradas");
-  }
+// Arquivo JavaScript externo para evitar CSP
+router.get("/oauth-callback.js", (req, res) => {
+  const jsContent = `
+// Função para obter parâmetros da URL
+function getUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return {
+        access_token: urlParams.get('access_token'),
+        code: urlParams.get('code'),
+        error: urlParams.get('error')
+    };
+}
 
-  try {
-    const tokenExchangeUrl = `https://graph.facebook.com/v23.0/oauth/access_token?client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&redirect_uri=${REDIRECT_URI}&code=${code}`;
-    const response = await axios.get(tokenExchangeUrl);
-    const accessToken = response.data.access_token;
-
-    // Redirecionar para a página de sucesso com o access token
-    const successHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Meta Ads OAuth Callback</title>
-    <meta charset="utf-8">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            background-color: #f5f5f5;
+// Função para enviar mensagem para a janela pai
+function sendMessageToParent(data) {
+    const origins = [
+        'https://otmizy.com',
+        'https://zeuz.otmizy.com', 
+        'http://localhost:3000',
+        window.location.origin
+    ];
+    
+    origins.forEach(origin => {
+        try {
+            if (window.opener) {
+                window.opener.postMessage(data, origin);
+                console.log('Mensagem enviada para origem:', origin, data);
+            }
+        } catch (e) {
+            console.log('Falha ao enviar para origem:', origin, e);
         }
-        .success { color: #28a745; font-size: 18px; margin-bottom: 20px; }
-        .token {
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            word-break: break-all;
-            margin: 20px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="success">
-        <h2>Autenticação Concluída com Sucesso!</h2>
-        <p>Fechando esta janela...</p>
-        <div class="token">Access Token: ${accessToken.substring(0, 20)}...</div>
-    </div>
+    });
+}
 
-    <script>
-        function sendMessageToParent(data) {
-            const origins = [
-                'https://otmizy.com',
-                'https://zeuz.otmizy.com', 
-                'http://localhost:3000',
-                window.location.origin
-            ];
-            
-            origins.forEach(origin => {
-                try {
-                    if (window.opener) {
-                        window.opener.postMessage(data, origin);
-                        console.log('Mensagem enviada para origem:', origin);
-                    }
-                } catch (e) {
-                    console.log('Falha ao enviar para origem:', origin, e);
-                }
-            });
-        }
-
+// Processar resultado quando a página carregar
+window.addEventListener('load', function() {
+    const params = getUrlParams();
+    
+    if (params.access_token) {
+        // Sucesso - enviar access token
         sendMessageToParent({
             type: 'META_ADS_OAUTH_SUCCESS',
-            accessToken: '${accessToken}',
-            code: '${code}',
+            accessToken: params.access_token,
+            code: params.code,
             timestamp: Date.now()
         });
         
-        setTimeout(() => window.close(), 2000);
-    </script>
-</body>
-</html>`;
-
-    res.send(successHtml);
-
-  } catch (error) {
-    console.error("Erro ao trocar código por token:", error.response?.data || error.message);
-    sendErrorPage(res, "Erro ao obter access token");
-  }
-}
-
-// Função para enviar página de erro
-function sendErrorPage(res, errorMessage) {
-  const errorHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Meta Ads OAuth Callback</title>
-    <meta charset="utf-8">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            background-color: #f5f5f5;
-        }
-        .error { color: #dc3545; font-size: 18px; margin-bottom: 20px; }
-    </style>
-</head>
-<body>
-    <div class="error">
-        <h2>Erro</h2>
-        <p>${errorMessage}</p>
-    </div>
-
-    <script>
-        function sendMessageToParent(data) {
-            const origins = [
-                'https://otmizy.com',
-                'https://zeuz.otmizy.com', 
-                'http://localhost:3000',
-                window.location.origin
-            ];
-            
-            origins.forEach(origin => {
-                try {
-                    if (window.opener) {
-                        window.opener.postMessage(data, origin);
-                        console.log('Mensagem enviada para origem:', origin);
-                    }
-                } catch (e) {
-                    console.log('Falha ao enviar para origem:', origin, e);
-                }
-            });
-        }
-
+        setTimeout(() => {
+            if (window.opener) {
+                window.close();
+            }
+        }, 2000);
+        
+    } else if (params.error) {
+        // Erro - enviar mensagem de erro
         sendMessageToParent({
             type: 'META_ADS_OAUTH_ERROR',
-            error: '${errorMessage}'
+            error: params.error
         });
         
-        setTimeout(() => window.close(), 3000);
-    </script>
-</body>
-</html>`;
+        setTimeout(() => {
+            if (window.opener) {
+                window.close();
+            }
+        }, 3000);
+    }
+});
+`;
 
-  res.send(errorHtml);
-}
-
-// Rota de callback para o OAuth (API endpoint)
-router.get("/oauth-callback", async (req, res) => {
-  const code = req.query.code;
-
-  if (!code) {
-    return res.status(400).json({ error: "Código de autorização não recebido." });
-  }
-
-  if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
-    return res.status(500).json({ error: "Variáveis de ambiente não configuradas." });
-  }
-
-  try {
-    const tokenExchangeUrl = `https://graph.facebook.com/v23.0/oauth/access_token?client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&redirect_uri=${REDIRECT_URI}&code=${code}`;
-    const response = await axios.get(tokenExchangeUrl);
-    const accessToken = response.data.access_token;
-
-    res.json({ 
-      access_token: accessToken,
-      token_type: 'bearer',
-      expires_in: response.data.expires_in 
-    });
-
-  } catch (error) {
-    console.error("Erro ao trocar código por token:", error.response?.data || error.message);
-    res.status(500).json({ error: "Erro ao obter access token." });
-  }
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(jsContent);
 });
 
 // Rota de saúde para o prefixo /oauth_meta
