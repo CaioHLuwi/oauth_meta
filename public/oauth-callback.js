@@ -1,5 +1,3 @@
-
-
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("access_token");
@@ -21,5 +19,3 @@ window.onload = function() {
         window.close();
     }, 100);
 };
-
-
