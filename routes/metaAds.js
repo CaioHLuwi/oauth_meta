@@ -88,7 +88,7 @@ router.get("/oauth-callback", async (req, res) => {
           <script>
               try {
                   // Tentar enviar para múltiplas origens possíveis
-                  const origins = ['https://otmizy.com', 'http://localhost:3000', '*'];
+                  const origins = ['https://otmizy.com', 'http://localhost:3000', 'https://zeuz.otmizy.com', '*'];
                   const message = {
                       type: 'META_ADS_OAUTH_SUCCESS',
                       accessToken: '${accessToken}',
