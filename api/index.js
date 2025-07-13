@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
+const path = require("path");
 const metaAdsRoutes = require("../routes/metaAds");
 
 const app = express();
@@ -11,6 +12,9 @@ app.use(cors()); // Permite todas as origens por padrão, ajuste em produção
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("dev"));
+
+// Serve static files from the 'public' directory
+app.use("/oauth_meta", express.static(path.join(__dirname, "../public")));
 
 // Rotas da API Meta Ads
 app.use("/oauth_meta", metaAdsRoutes);
