@@ -8,12 +8,20 @@
   ],
   "routes": [
     {
-      "src": "/oauth_meta/(.*)",
-      "dest": "/public/$1"
+      "src": "/oauth_meta/oauth/initiate",
+      "dest": "/api/index.js"
     },
     {
-      "src": "/oauth_meta/oauth/(.*)",
-      "dest": "/api/index.js"
+      "src": "/oauth_meta/oauth-callback.html",
+      "dest": "/public/oauth-callback.html"
+    },
+    {
+      "src": "/oauth_meta/oauth-error.html",
+      "dest": "/public/oauth-error.html"
+    },
+    {
+      "src": "/oauth_meta/oauth-callback.js",
+      "dest": "/public/oauth-callback.js"
     },
     {
       "src": "/oauth_meta/health",
