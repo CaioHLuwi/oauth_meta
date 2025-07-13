@@ -38,38 +38,12 @@ router.get("/oauth-callback.html", async (req, res) => {
 
   if (!code) {
     console.error("Authorization code not received.");
-    return res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head><title>OAuth Error</title></head>
-            <body>
-                <h1>Erro na Autenticação</h1>
-                <p>Código de autorização não recebido.</p>
-                <script>
-                    localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_ERROR\', message: \'Authorization code not received.\' }));
-                    window.close();
-                </script>
-            </body>
-            </html>
-        `);
+    return res.redirect("/oauth-error.html?message=Authorization code not received.");
   }
 
   if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
     console.error("Missing environment variables for token exchange.");
-    return res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head><title>OAuth Error</title></head>
-            <body>
-                <h1>Erro na Autenticação</h1>
-                <p>Variáveis de ambiente ausentes para troca de token.</p>
-                <script>
-                    localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_ERROR\', message: \'Missing environment variables.\' }));
-                    window.close();
-                </script>
-            </body>
-            </html>
-        `);
+    return res.redirect("/oauth-error.html?message=Missing environment variables for token exchange.");
   }
 
   try {
@@ -91,31 +65,9 @@ router.get("/oauth-callback.html", async (req, res) => {
       accessToken ? accessToken.substring(0, 20) + "..." : "N/A"
     );
 
-    res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Autenticação Concluída</title>
-                <style>
-                    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
-                    .container { background-color: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
-                    .success { color: #4CAF50; font-weight: bold; }
-                    .error { color: #F44336; font-weight: bold; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>Autenticação Concluída com Sucesso!</h1>
-                    <p class="success">Access Token: ${accessToken.substring(0, 50)}...</p>
-                    <p>Esta janela será fechada automaticamente.</p>
-                    <script>
-                        localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_SUCCESS\', accessToken: \'${accessToken}\' }));
-                        setTimeout(() => { window.close(); }, 100);
-                    </script>
-                </div>
-            </body>
-            </html>
-        `);
+    // Redirect to a static HTML page that will handle localStorage and close itself
+    res.redirect(`/oauth-result.html?access_token=${accessToken}`);
+
   } catch (error) {
     console.error(
       "Error exchanging code for access token:",
@@ -129,20 +81,7 @@ router.get("/oauth-callback.html", async (req, res) => {
         ? error.response.data.error.message
         : "Erro desconhecido ao obter access token.";
 
-    res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head><title>OAuth Error</title></head>
-            <body>
-                <h1>Erro na Autenticação</h1>
-                <p class="error">Erro ao obter access token: ${errorMessage}</p>
-                <script>
-                    localStorage.setItem(\'meta_ads_oauth_result\', JSON.stringify({ type: \'META_ADS_OAUTH_ERROR\', message: \'Error obtaining access token: ${errorMessage}\' }));
-                    window.close();
-                </script>
-            </body>
-            </html>
-        `);
+    res.redirect(`/oauth-error.html?message=${encodeURIComponent(errorMessage)}`);
   }
 });
 
