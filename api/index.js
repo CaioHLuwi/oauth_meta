@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const path = require("path"); // Adicione esta linha
+const path = require("path");
 const metaAdsRoutes = require("../routes/metaAds");
 
 const app = express();
@@ -14,7 +14,6 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 // Serve static files from the 'public' directory under /oauth_meta
-// O __dirname aponta para o diretório atual (api), então ../public leva à pasta public na raiz do projeto
 app.use("/oauth_meta", express.static(path.join(__dirname, "../public")));
 
 // Rotas da API Meta Ads
@@ -37,3 +36,5 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
+
