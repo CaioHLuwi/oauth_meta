@@ -38,12 +38,12 @@ router.get("/oauth-callback.html", async (req, res) => {
 
   if (!code) {
     console.error("Authorization code not received.");
-    return res.redirect("/oauth-error.html?message=Authorization code not received.");
+    return res.redirect("/oauth_meta/oauth-error.html?message=Authorization code not received.");
   }
 
   if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
     console.error("Missing environment variables for token exchange.");
-    return res.redirect("/oauth-error.html?message=Missing environment variables for token exchange.");
+    return res.redirect("/oauth_meta/oauth-error.html?message=Missing environment variables for token exchange.");
   }
 
   try {
@@ -66,7 +66,7 @@ router.get("/oauth-callback.html", async (req, res) => {
     );
 
     // Redirect to a static HTML page that will handle localStorage and close itself
-    res.redirect(`/oauth-result.html?access_token=${accessToken}`);
+    res.redirect(`/oauth_meta/oauth-result.html?access_token=${accessToken}`);
 
   } catch (error) {
     console.error(
@@ -81,7 +81,7 @@ router.get("/oauth-callback.html", async (req, res) => {
         ? error.response.data.error.message
         : "Erro desconhecido ao obter access token.";
 
-    res.redirect(`/oauth-error.html?message=${encodeURIComponent(errorMessage)}`);
+    res.redirect(`/oauth_meta/oauth-error.html?message=${encodeURIComponent(errorMessage)}`);
   }
 });
 
