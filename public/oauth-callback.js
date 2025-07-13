@@ -1,6 +1,8 @@
+
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("access_token");
+    const errorMessage = urlParams.get("message");
 
     if (accessToken) {
         const oauthResult = {
@@ -9,13 +11,23 @@ window.onload = function() {
             timestamp: Date.now()
         };
         localStorage.setItem("meta_ads_oauth_result", JSON.stringify(oauthResult));
-        console.log("Access token saved to localStorage from external JS.");
-    } else {
-        localStorage.setItem("meta_ads_oauth_result", JSON.stringify({ type: "META_ADS_OAUTH_ERROR", message: "Access token not found in URL." }));
-        console.error("Access token not found in URL for external JS.");
+        console.log("Access token salvo no localStorage e popup será fechado.");
+    } else if (errorMessage) {
+        const oauthResult = {
+            type: "META_ADS_OAUTH_ERROR",
+            error: decodeURIComponent(errorMessage),
+            timestamp: Date.now()
+        };
+        localStorage.setItem("meta_ads_oauth_result", JSON.stringify(oauthResult));
+        console.error("Erro de autenticação salvo no localStorage e popup será fechado.");
+        const errorElement = document.getElementById("errorMessage");
+        if (errorElement) {
+            errorElement.textContent = decodeURIComponent(errorMessage);
+        }
     }
-    // Close the window after a short delay to ensure localStorage is set
-    setTimeout(() => {
-        window.close();
-    }, 100);
+
+    // Always close the window after processing
+    window.close();
 };
+
+
