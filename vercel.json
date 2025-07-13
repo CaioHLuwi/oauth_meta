@@ -8,7 +8,15 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/oauth_meta/oauth/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/oauth_meta/health",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/api/meta-ads/(.*)",
       "dest": "/api/index.js"
     }
   ]
