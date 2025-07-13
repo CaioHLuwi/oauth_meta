@@ -1,38 +1,77 @@
+
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-const CLIENT_ID = process.env.META_APP_ID;
-const CLIENT_SECRET = process.env.META_APP_SECRET;
-const REDIRECT_URI = process.env.META_REDIRECT_URI;
+// Utility function to get environment variables
+const getEnv = (key) => {
+    const value = process.env[key];
+    if (!value) {
+        console.error(`Environment variable ${key} is not set.`);
+        // In a real application, you might want to throw an error or handle this more gracefully
+    }
+    return value;
+};
 
+const META_APP_ID = getEnv('META_APP_ID');
+const META_APP_SECRET = getEnv('META_APP_SECRET');
+const REDIRECT_URI = getEnv('REDIRECT_URI');
+
+// Health check endpoint
+router.get('/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Backend is healthy' });
+});
+
+// Initiate OAuth flow
 router.get('/oauth/initiate', (req, res) => {
-    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=ads_management,ads_read,read_insights,business_management`;
+    if (!META_APP_ID || !REDIRECT_URI) {
+        return res.status(500).json({ error: 'META_APP_ID or REDIRECT_URI not configured in environment.' });
+    }
+    const authUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${REDIRECT_URI}&scope=public_profile`;
     res.json({ authUrl });
 });
 
+// OAuth callback endpoint
 router.get('/oauth-callback.html', async (req, res) => {
     const { code } = req.query;
 
     if (!code) {
+        console.error('Authorization code not received.');
         return res.send(`
             <!DOCTYPE html>
             <html>
-            <head>
-                <title>Autenticação Cancelada</title>
-                <style>
-                    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8d7da; color: #721c24; text-align: center; }
-                    .container { padding: 20px; border-radius: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; }
-                    h1 { color: #721c24; }
-                </style>
-            </head>
+            <head><title>OAuth Error</title></head>
             <body>
-                <div class="container">
-                    <h1>Autenticação Cancelada pelo Usuário</h1>
-                    <p>Você cancelou o processo de autenticação ou ocorreu um erro.</p>
-                </div>
+                <h1>Erro na Autenticação</h1>
+                <p>Código de autorização não recebido.</p>
                 <script>
-                    localStorage.setItem('metaAdsOAuthResult', JSON.stringify({ error: 'Autenticação cancelada pelo usuário' }));
+                    // Send error message to opener if available
+                    if (window.opener) {
+                        window.opener.postMessage({ type: 'META_ADS_OAUTH_ERROR', message: 'Authorization code not received.' }, '*');
+                    }
+                    // Fallback for localStorage communication
+                    localStorage.setItem('meta_ads_oauth_result', JSON.stringify({ type: 'META_ADS_OAUTH_ERROR', message: 'Authorization code not received.' }));
+                    window.close();
+                </script>
+            </body>
+            </html>
+        `);
+    }
+
+    if (!META_APP_ID || !META_APP_SECRET || !REDIRECT_URI) {
+        console.error('Missing environment variables for token exchange.');
+        return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>OAuth Error</title></head>
+            <body>
+                <h1>Erro na Autenticação</h1>
+                <p>Variáveis de ambiente ausentes para troca de token.</p>
+                <script>
+                    if (window.opener) {
+                        window.opener.postMessage({ type: 'META_ADS_OAUTH_ERROR', message: 'Missing environment variables.' }, '*');
+                    }
+                    localStorage.setItem('meta_ads_oauth_result', JSON.stringify({ type: 'META_ADS_OAUTH_ERROR', message: 'Missing environment variables.' }));
                     window.close();
                 </script>
             </body>
@@ -41,74 +80,120 @@ router.get('/oauth-callback.html', async (req, res) => {
     }
 
     try {
-        const { data } = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+        const tokenResponse = await axios.get('https://graph.facebook.com/v23.0/oauth/access_token', {
             params: {
-                client_id: CLIENT_ID,
-                client_secret: CLIENT_SECRET,
+                client_id: META_APP_ID,
+                client_secret: META_APP_SECRET,
                 redirect_uri: REDIRECT_URI,
-                code,
+                code: code,
             },
         });
 
-        const accessToken = data.access_token;
+        const accessToken = tokenResponse.data.access_token;
+        console.log('Access Token obtained:', accessToken ? accessToken.substring(0, 20) + '...' : 'N/A');
+
+        // Redirect to a static HTML page that handles localStorage communication
+        res.redirect(`/oauth_meta/oauth-result.html?access_token=${accessToken}`);
+
+    } catch (error) {
+        console.error('Error exchanging code for access token:', error.response ? error.response.data : error.message);
+        const errorMessage = error.response && error.response.data && error.response.data.error && error.response.data.error.message
+            ? error.response.data.error.message
+            : 'Erro desconhecido ao obter access token.';
 
         res.send(`
             <!DOCTYPE html>
             <html>
-            <head>
-                <title>Autenticação Concluída</title>
-                <style>
-                    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #d4edda; color: #155724; text-align: center; }
-                    .container { padding: 20px; border-radius: 8px; background-color: #d4edda; border: 1px solid #c3e6cb; }
-                    h1 { color: #155724; }
-                    .token { background-color: #e2f0d9; padding: 10px; border-radius: 5px; word-break: break-all; }
-                </style>
-            </head>
+            <head><title>OAuth Error</title></head>
             <body>
-                <div class="container">
-                    <h1>Autenticação Concluída com Sucesso!</h1>
-                    <p>Seu access token:</p>
-                    <div class="token">${accessToken}</div>
-                    <p>Você pode fechar esta janela.</p>
-                </div>
+                <h1>Erro na Autenticação</h1>
+                <p>Erro ao obter access token: ${errorMessage}</p>
                 <script>
-                    localStorage.setItem('metaAdsOAuthResult', JSON.stringify({ accessToken: '${accessToken}' }));
-                    setTimeout(() => {
-                        window.close();
-                    }, 500); // Adiciona um pequeno atraso antes de fechar
-                </script>
-            </body>
-            </html>
-        `);
-
-    } catch (error) {
-        console.error('Erro ao obter access token:', error.response ? error.response.data : error.message);
-        const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-        res.status(500).send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Erro de Autenticação</title>
-                <style>
-                    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8d7da; color: #721c24; text-align: center; }
-                    .container { padding: 20px; border-radius: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; }
-                    h1 { color: #721c24; }
-                    .error-message { background-color: #f5c6cb; padding: 10px; border-radius: 5px; word-break: break-all; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>Erro ao obter access token</h1>
-                    <p>Ocorreu um erro durante o processo de autenticação:</p>
-                    <div class="error-message">${errorMessage}</div>
-                </div>
-                <script>
-                    localStorage.setItem('metaAdsOAuthResult', JSON.stringify({ error: 'Erro ao obter access token: ${errorMessage}' }));
+                    if (window.opener) {
+                        window.opener.postMessage({ type: 'META_ADS_OAUTH_ERROR', message: 'Error obtaining access token: ${errorMessage}' }, '*');
+                    }
+                    localStorage.setItem('meta_ads_oauth_result', JSON.stringify({ type: 'META_ADS_OAUTH_ERROR', message: 'Error obtaining access token: ${errorMessage}' }));
                     window.close();
                 </script>
             </body>
             </html>
         `);
+    }
+});
+
+// Static HTML page to handle localStorage communication
+router.get('/oauth-result.html', (req, res) => {
+    const accessToken = req.query.access_token;
+
+    if (!accessToken) {
+        return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>OAuth Result</title></head>
+            <body>
+                <h1>Erro na Autenticação</h1>
+                <p>Access token não encontrado.</p>
+                <script>
+                    localStorage.setItem('meta_ads_oauth_result', JSON.stringify({ type: 'META_ADS_OAUTH_ERROR', message: 'Access token not found.' }));
+                    window.close();
+                </script>
+            </body>
+            </html>
+        `);
+    }
+
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Autenticação Concluída</title>
+            <script>
+                // This script runs immediately when the page loads
+                window.onload = function() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const accessToken = urlParams.get('access_token');
+
+                    if (accessToken) {
+                        const oauthResult = {
+                            type: 'META_ADS_OAUTH_SUCCESS',
+                            accessToken: accessToken,
+                            timestamp: Date.now()
+                        };
+                        localStorage.setItem('meta_ads_oauth_result', JSON.stringify(oauthResult));
+                        console.log('Access token saved to localStorage from oauth-result.html');
+                    } else {
+                        localStorage.setItem('meta_ads_oauth_result', JSON.stringify({ type: 'META_ADS_OAUTH_ERROR', message: 'Access token not found in URL.' }));
+                        console.error('Access token not found in URL for oauth-result.html');
+                    }
+                    // Close the window after a short delay to ensure localStorage is set
+                    setTimeout(() => {
+                        window.close();
+                    }, 100);
+                };
+            </script>
+        </head>
+        <body>
+            <h1>Autenticação Concluída com Sucesso!</h1>
+            <p>Você pode fechar esta janela.</p>
+        </body>
+        </html>
+    `);
+});
+
+// Test token endpoint (for debugging)
+router.get('/test-token', async (req, res) => {
+    const { accessToken } = req.query;
+
+    if (!accessToken) {
+        return res.status(400).json({ error: 'Access token is required.' });
+    }
+
+    try {
+        const debugResponse = await axios.get(`https://graph.facebook.com/debug_token?input_token=${accessToken}&access_token=${META_APP_ID}|${META_APP_SECRET}`);
+        res.json(debugResponse.data);
+    } catch (error) {
+        console.error('Error debugging token:', error.response ? error.response.data : error.message);
+        res.status(500).json({ error: 'Failed to debug token.', details: error.response ? error.response.data : error.message });
     }
 });
 
