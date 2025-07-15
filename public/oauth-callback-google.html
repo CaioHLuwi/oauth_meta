@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Google Ads OAuth Callback</title>
+</head>
+<body>
+  <h1>Retornando do Google OAuth…</h1>
+  <p>Esta janela será fechada automaticamente.</p>
+
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const accessToken  = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const error        = params.get('error');
+
+      let result;
+      if (accessToken) {
+        // Sucesso
+        result = {
+          type: 'GOOGLE_ADS_OAUTH_SUCCESS',
+          accessToken,
+          refreshToken,
+          timestamp: Date.now()
+        };
+        // Notifica a janela principal
+        window.opener.postMessage('google_auth_success', window.location.origin);
+      } else {
+        // Erro
+        const message = error || 'Access token not found in URL';
+        result = {
+          type: 'GOOGLE_ADS_OAUTH_ERROR',
+          message
+        };
+        window.opener.postMessage('google_auth_error', window.location.origin);
+      }
+
+      // Salva o resultado para o front ler
+      localStorage.setItem('google_ads_oauth_result', JSON.stringify(result));
+
+      // Fecha a janela após breve delay
+      setTimeout(() => window.close(), 100);
+    })();
+  </script>
+</body>
+</html>
