@@ -1,14 +1,13 @@
 {
+  "version": 2,
   "functions": {
     "api/**/*.js": {
-      "runtime": "nodejs18.x",
-      "memory": 1024,
-      "maxDuration": 10
+      "runtime": "nodejs18.x"
     }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+    { "src": "/(.*)",      "dest": "/public/$1" }
   ]
 }
