@@ -2,6 +2,16 @@
 const { google } = require('googleapis');
 
 module.exports = (req, res) => {
+     if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    return res.status(200).end();
+  }
+
+  // 2) Permite chamadas de qualquer origem
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
   const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = process.env;
   if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
     return res
