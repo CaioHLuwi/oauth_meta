@@ -1,0 +1,9 @@
+<script>
+  const params = new URLSearchParams(location.search);
+  const token = params.get('access_token');
+  if (token) {
+    localStorage.setItem('META_ACCESS_TOKEN', token);
+    window.opener.postMessage('oauth_success_meta', location.origin);
+  }
+  window.close();
+</script>

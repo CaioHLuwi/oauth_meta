@@ -1,29 +1,14 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x",
+      "memory": 1024,
+      "maxDuration": 10
     }
-  ],
+  },
   "routes": [
-    {
-      "src": "/oauth_meta/(.*)",
-      "dest": "/public/$1"
-    },
-    {
-      "src": "/oauth_meta/oauth/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/oauth_meta/health",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/api/meta-ads/(.*)",
-      "dest": "/api/index.js"
-    }
+    { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
-
-
