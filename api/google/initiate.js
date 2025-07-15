@@ -1,12 +1,8 @@
 // api/google/initiate.js
-import { google } from 'googleapis';
+const { google } = require('googleapis');
 
-export default function handler(req, res) {
-  const {
-    GOOGLE_CLIENT_ID,
-    GOOGLE_REDIRECT_URI
-  } = process.env;
-
+module.exports = (req, res) => {
+  const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = process.env;
   if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
     return res
       .status(500)
@@ -28,6 +24,5 @@ export default function handler(req, res) {
     prompt: 'consent'
   });
 
-  // Voltamos só a URL para o front disparar o redirect
   res.status(200).json({ authUrl });
-}
+};
