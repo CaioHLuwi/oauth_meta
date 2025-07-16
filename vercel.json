@@ -10,6 +10,7 @@
     { "src": "/oauth-callback-google.html", "dest": "/public/oauth-callback-google.html" },
     { "src": "/api/google/(.*)", "dest": "/api/google/$1" },
     { "src": "/api/meta/(.*)", "dest": "/api/meta/$1" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/api/404.js" } 
   ]
 }
