@@ -6,9 +6,7 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    { "src": "/oauth-callback-google.html", "dest": "/public/oauth-callback-google.html" },
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
   ]
 }
