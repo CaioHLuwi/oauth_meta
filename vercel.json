@@ -7,8 +7,7 @@
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    { "src": "/(.*)", "dest": "/public/$1" },
-    { "handle": "filesystem" }
+    { "src": "/oauth-callback-google.html", "dest": "/public/oauth-callback-google.html" },
+    { "src": "/(.*)", "dest": "/api/$1" }
   ]
 }
