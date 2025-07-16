@@ -1,11 +1,17 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/**/*.[jt]s", "use": "@vercel/node" }
+    { "src": "api/**/*.js",    "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "src": "/api/(.*)",                       "dest": "/api/$1.js" },
+
+    { "src": "/oauth-callback-google.html",     "dest": "/public/oauth-callback-google.html" },
+    { "src": "/oauth-callback-meta.html",       "dest": "/public/oauth-callback-meta.html" },
+    { "src": "/oauth-error.html",               "dest": "/public/oauth-error.html" },
+
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+
+    { "src": "/(.*)",                            "dest": "/public/$1" }
   ]
 }
