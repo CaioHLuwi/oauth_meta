@@ -1,6 +1,18 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
+    { "source": "/api/auth/google", "destination": "/api/google/initiate" },
+    { "source": "/api/auth/google/callback", "destination": "/api/google/callback" },
+    { "source": "/api/auth/google/campaigns", "destination": "/api/google/campaigns" },
+    { "source": "/api/auth/meta", "destination": "/api/meta/initiate" },
+    { "source": "/api/auth/meta/callback", "destination": "/api/meta/callback" },
+    { "source": "/api/auth/meta/campaigns", "destination": "/api/meta/campaigns" },
+    { "source": "/api/auth/meta/test-token", "destination": "/api/meta/test-token" },
+    { "source": "/api/auth/health", "destination": "/api/health" }
   ]
 }

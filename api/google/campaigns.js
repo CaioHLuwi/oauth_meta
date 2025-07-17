@@ -1,31 +1,50 @@
 // api/google/campaigns.js
-import { google } from 'googleapis';
+const { google } = require('googleapis');
 
-export default async function handler(req, res) {
-  // Espera receber o token no header Authorization: Bearer <token>
-  const authHeader = req.headers.authorization || '';
-  const match = authHeader.match(/^Bearer (.+)$/);
-  if (!match) {
-    return res.status(401).json({ error: 'Token não fornecido' });
+module.exports = async (req, res) => {
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    return res.status(200).end();
   }
-  const accessToken = match[1];
 
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: accessToken });
+  // Permite chamadas de qualquer origem
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Access token não fornecido.' });
+  }
+
+  const accessToken = authHeader.split(' ')[1];
+  const refreshToken = req.headers['x-refresh-token'];
 
   try {
-    // Exemplo: listar clientes acessíveis
-    const ads = google.ads('v14');
-    const { data } = await ads.customers.listAccessibleCustomers({
-      auth: oauth2Client
+    const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+    const GOOGLE_REDIRECT_URI = `${process.env.APP_URL || 'https://backend.otmizy.com'}/api/google/callback`;
+    
+    const oauth2Client = new google.auth.OAuth2(
+      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET,
+      GOOGLE_REDIRECT_URI
+    );
+    
+    oauth2Client.setCredentials({
+      access_token: accessToken,
+      refresh_token: refreshToken
     });
-    // Retorne o JSON completo ou filtre o que precisar
-    res.status(200).json(data);
-  } catch (err) {
-    console.error('Erro ao buscar campanhas Google:', err);
-    res.status(500).json({
-      error: 'Não foi possível obter dados de campanha',
-      message: err.message
+    
+    const ads = google.ads('v14');
+    const data = await ads.customers.listAccessibleCustomers({ auth: oauth2Client });
+    
+    res.json(data);
+  } catch (error) {
+    console.error('Erro ao listar campanhas:', error);
+    res.status(500).json({ 
+      error: 'Erro ao obter campanhas.',
+      details: error.message 
     });
   }
-}
+};

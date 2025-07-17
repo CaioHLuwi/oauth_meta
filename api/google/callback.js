@@ -1,13 +1,14 @@
 // api/google/callback.js
-import { google } from 'googleapis';
+const { google } = require('googleapis');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   const { code } = req.query;
   const {
     GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URI
+    GOOGLE_CLIENT_SECRET
   } = process.env;
+  
+  const GOOGLE_REDIRECT_URI = `${process.env.APP_URL || 'https://backend.otmizy.com'}/api/google/callback`;
 
   if (!code) {
     return res.redirect('/oauth-error.html');
@@ -33,4 +34,4 @@ export default async function handler(req, res) {
     console.error('Google OAuth callback error:', err);
     return res.redirect('/oauth-error.html');
   }
-}
+};
