@@ -1,20 +1,15 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    { "src": "/api/auth/google", "dest": "/api/google/initiate" },
-    { "src": "/api/auth/google/callback", "dest": "/api/google/callback" },
-    { "src": "/api/auth/google/campaigns", "dest": "/api/google/campaigns" },
-    { "src": "/api/auth/meta", "dest": "/api/meta/initiate" },
-    { "src": "/api/auth/meta/callback", "dest": "/api/meta/callback" },
-    { "src": "/api/auth/meta/campaigns", "dest": "/api/meta/campaigns" },
-    { "src": "/api/auth/meta/ad-accounts", "dest": "/api/meta/ad-accounts" },
-    { "src": "/api/auth/meta/test-token", "dest": "/api/meta/test-token" },
-    { "src": "/api/auth/health", "dest": "/api/health" }
+  "buildCommand": null,
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/auth/google", "destination": "/api/google/initiate" },
+    { "source": "/api/auth/google/callback", "destination": "/api/google/callback" },
+    { "source": "/api/auth/google/campaigns", "destination": "/api/google/campaigns" },
+    { "source": "/api/auth/meta", "destination": "/api/meta/initiate" },
+    { "source": "/api/auth/meta/callback", "destination": "/api/meta/callback" },
+    { "source": "/api/auth/meta/campaigns", "destination": "/api/meta/campaigns" },
+    { "source": "/api/auth/meta/ad-accounts", "destination": "/api/meta/ad-accounts" },
+    { "source": "/api/auth/meta/test-token", "destination": "/api/meta/test-token" }
   ]
 }
