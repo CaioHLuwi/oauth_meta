@@ -1,0 +1,78 @@
+{
+    "access_token": "ya29.a0AS3H6NwUoFs8D9Hb_VkXpGx7vFl4cIWIG8K-2JhGzLvS0XVrZTpPFanid4w08w8DgOdBkYQa1ItYcOWkRBtHlDwx-X_psVOVbGuOmWE20B5GS7SEjH61dZrbs_-fX93X57II-Owl8ejEE3LWhHyFQ9O8qltSjYI5FWbeP2vuaCgYKAQYSARMSFQHGX2Mi40FqNZdlSDr0maUlSjD_rg0175",
+    "refresh_token": "1//05eNPHUpSQNt_CgYIARAAGAUSNwF-L9IrKex0URuGEE73IpKaUWzhEEA8SX5uTbareVxaSxHvyjoCMmlCZpVhKNIceakRafoOpN4",
+    "userInfo": {
+        "id": "113867477273845719145",
+        "email": "caiohenriquelui@gmail.com",
+        "verified_email": true,
+        "picture": "https://lh3.googleusercontent.com/a-/ALV-UjX8iYIR0xcQYgJOux8Ui81zv0b9JctR2thjRyyvTl8NHKXyyKw=s96-c"
+    },
+    "adsAccounts": null
+}
+// Access_token 1//05lWjtlODUeDRCgYIARAAGAUSNwF-L9Ir9c2GxWpcxdAv0MiUjMdT19ZySQZ-97wG-JW1eOaE18jeMz9OO4VgxqOyjwt4_TRaSS0
+// Meta
+
+Acess token EAAOXGZCGp68UBPBDAFAIvsrut2HTFGovCZBF723ZB6mItxi5ey59yevfhukgrwUZC0TYMPGfpi2KJZCZCDZBANeTq9TNAqc8qe7ejEM4A6dE7cH33yv5eMALiyazvOlRzc8meBXJ1gzzwzZB4rJ181tjZAxGe8TcjCm8EMG7ZBVRwo94qJVUC5ufhkDLuewEquWBsZAfCmzVRybMeDgBUZBagZC93kwNcvVyEUTzrUS0mze7MbtaFoZCceZBvIfY9DM4amWZCyrBUbpwoXytKwZDZD
+
+User data{
+    "access_token": "EAAOXGZCGp68UBPBDAFAIvsrut2HTFGovCZBF723ZB6mItxi5ey59yevfhukgrwUZC0TYMPGfpi2KJZCZCDZBANeTq9TNAqc8qe7ejEM4A6dE7cH33yv5eMALiyazvOlRzc8meBXJ1gzzwzZB4rJ181tjZAxGe8TcjCm8EMG7ZBVRwo94qJVUC5ufhkDLuewEquWBsZAfCmzVRybMeDgBUZBagZC93kwNcvVyEUTzrUS0mze7MbtaFoZCceZBvIfY9DM4amWZCyrBUbpwoXytKwZDZD",
+    "userInfo": {
+        "id": "719408247740946",
+        "name": "Caio+Henrique",
+        "picture": {
+            "data": {
+                "height": 200,
+                "is_silhouette": false,
+                "url": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=719408247740946&height=200&width=200&ext=1755467243&hash=AT8TyTd__YWIc8bXirKxHBeG",
+                "width": 200
+            }
+        }
+    }
+}
+
+{
+    "access_token": "EAAOXGZCGp68UBPAYM7hznM4eSu65TCAdGZAdneTLqmLurWGISCqBwAjumeriE67ZB5mn4o5GHUw0F5k4FZCSe3WFBlbXRLZByUuJQgDRV6O6SR5vxH2VeX5Wq7quhhBo5GfZAConP3HIXhCNSnWzh9Ru1jNwhnCIBS6VjcdQ7IgqO8Ll1lZCzvxHZBjy1KZADXZCidhugUPcdu1ql4PD5B84ZB92ZAaRDDBtpDOlLndoJYhMQbenBHaaujpI6b6n5K8U5VFhj5RZChVbAKQZDZD",
+    "userInfo": {
+        "id": "719408247740946",
+        "name": "Caio+Henrique",
+        "picture": {
+            "data": {
+                "height": 200,
+                "is_silhouette": false,
+                "url": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=719408247740946&height=200&width=200&ext=1755467716&hash=AT9WfVhFY_T-ld6whfpL2b9x",
+                "width": 200
+            }
+        }
+    },
+    "adAccounts": null,
+    "businessManagers": null,
+    "permissionErrors": [
+        {
+            "type": "ad_accounts",
+            "error": {
+                "message": "(#100)+Requires+business_management+permission+to+access+the+field.",
+                "type": "OAuthException",
+                "code": 100,
+                "fbtrace_id": "AzVAiOMzY9esarpjoXJieyD"
+            },
+            "required_permissions": [
+                "ads_read",
+                "ads_management"
+            ],
+            "message": "Para+acessar+contas+de+anúncio,+são+necessárias+as+permissões:+ads_read,+ads_management"
+        },
+        {
+            "type": "business_managers",
+            "error": {
+                "message": "(#100)+Missing+Permission",
+                "type": "OAuthException",
+                "code": 100,
+                "fbtrace_id": "A_tdbVzm2NdwPI3QBJEYmB5"
+            },
+            "required_permissions": [
+                "business_management"
+            ],
+            "message": "Para+acessar+Business+Managers,+é+necessária+a+permissão:+business_management"
+        }
+    ]
+}

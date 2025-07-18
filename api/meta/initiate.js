@@ -19,7 +19,7 @@ module.exports = (req, res) => {
     return res.status(500).json({ error: 'META_APP_ID não configurado no ambiente.' });
   }
   
-  const authUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(META_REDIRECT_URI)}&scope=ads_read,ads_management,public_profile`;
+  const authUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(META_REDIRECT_URI)}&scope=ads_read,ads_management,business_management,public_profile,email`;
   
   return res.status(200).json({ authUrl });
 };
