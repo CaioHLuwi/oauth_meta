@@ -33,19 +33,16 @@
         if (accessToken) {
            // Sucesso
            result = {
-             type: 'GOOGLE_ADS_OAUTH_SUCCESS',
              accessToken,
              refreshToken,
              userInfo: userData?.userInfo || null,
+             adsAccounts: userData?.adsAccounts || null,
              timestamp: Date.now()
            };
            
            // Preparar informações do usuário para exibição
             const userInfo = userData?.userInfo;
             const adsAccounts = userData?.adsAccounts;
-            
-            // Adicionar dados do Google Ads ao resultado
-            result.adsAccounts = adsAccounts;
             
             let userDisplay = '';
             if (userInfo) {
@@ -91,29 +88,12 @@
              <p style="margin-top: 20px; color: #666;">Esta janela será fechada automaticamente em alguns segundos.</p>
            `;
           
-          // Enviar dados para o frontend via POST
-          try {
-            await fetch('https://otmizy.com/ads-accounts', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                provider: 'google',
-                timestamp: new Date().toISOString(),
-                data: result
-              })
-            });
-          } catch (postError) {
-            console.warn('Erro ao enviar dados para o frontend:', postError.message);
-          }
-          
           // Notifica a janela principal com try/catch
           try {
             if (window.opener && !window.opener.closed) {
               window.opener.postMessage({
-                type: 'google_auth_success',
-                data: result
+                type: 'GOOGLE_AUTH_SUCCESS',
+                result: result
               }, '*');
             }
           } catch (e) {
@@ -123,8 +103,8 @@
           // Erro
           const message = error || 'Access token not found in URL';
           result = {
-            type: 'GOOGLE_ADS_OAUTH_ERROR',
-            message
+            error: message,
+            timestamp: Date.now()
           };
           
           // Atualiza a UI
@@ -138,8 +118,8 @@
           try {
             if (window.opener && !window.opener.closed) {
               window.opener.postMessage({
-                type: 'google_auth_error',
-                data: result
+                type: 'GOOGLE_AUTH_ERROR',
+                result: result
               }, '*');
             }
           } catch (e) {
@@ -147,17 +127,18 @@
           }
         }
 
-        // Salva o resultado para o front ler
+        // Salva o resultado no localStorage
         localStorage.setItem('google_ads_oauth_result', JSON.stringify(result));
+        localStorage.setItem('google_ads_access_token', accessToken || '');
 
-        // Fecha a janela após delay maior para permitir leitura
+        // Fecha a janela após 3 segundos
         setTimeout(() => {
           try {
             window.close();
           } catch (e) {
             console.log('Não foi possível fechar a janela automaticamente');
           }
-        }, 30000);
+        }, 3000);
         
       } catch (globalError) {
         console.error('Erro no callback do Google:', globalError);

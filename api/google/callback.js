@@ -12,7 +12,8 @@ module.exports = async (req, res) => {
   const { code, error } = req.query;
   const {
     GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_DEVELOPER_TOKEN
   } = process.env;
   
   const GOOGLE_REDIRECT_URI = `${process.env.APP_URL || 'https://backend.otmizy.com'}/api/google/callback`;
@@ -59,19 +60,35 @@ module.exports = async (req, res) => {
       
       // Buscar contas do Google Ads acessíveis
       try {
-        oauth2Client.setCredentials({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token
-        });
-        
-        const ads = google.ads('v14');
-        const accessibleCustomers = await ads.customers.listAccessibleCustomers({ 
-          auth: oauth2Client 
-        });
-        
-        adsAccounts = accessibleCustomers.data;
+        if (!GOOGLE_DEVELOPER_TOKEN) {
+          console.warn('GOOGLE_DEVELOPER_TOKEN não configurado - não é possível buscar contas do Google Ads');
+          adsAccounts = { error: 'Developer token não configurado' };
+        } else {
+          // Fazer requisição direta para a API REST do Google Ads
+          const response = await fetch('https://googleads.googleapis.com/v14/customers:listAccessibleCustomers', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${tokens.access_token}`,
+              'developer-token': GOOGLE_DEVELOPER_TOKEN,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            adsAccounts = await response.json();
+          } else {
+            const errorText = await response.text();
+            console.warn('Erro ao buscar contas do Google Ads:', response.status, errorText);
+            adsAccounts = { 
+              error: `HTTP ${response.status}`, 
+              details: errorText,
+              message: 'Verifique se o developer token está configurado corretamente'
+            };
+          }
+        }
       } catch (adsError) {
         console.warn('Erro ao buscar contas do Google Ads:', adsError.message);
+        adsAccounts = { error: adsError.message };
       }
     }
     

@@ -33,19 +33,16 @@
         if (accessToken) {
            // Sucesso
            result = {
-             type: 'GOOGLE_ADS_OAUTH_SUCCESS',
              accessToken,
              refreshToken,
              userInfo: userData?.userInfo || null,
+             adsAccounts: userData?.adsAccounts || null,
              timestamp: Date.now()
            };
            
            // Preparar informações do usuário para exibição
             const userInfo = userData?.userInfo;
             const adsAccounts = userData?.adsAccounts;
-            
-            // Adicionar dados do Google Ads ao resultado
-            result.adsAccounts = adsAccounts;
             
             let userDisplay = '';
             if (userInfo) {
@@ -72,12 +69,23 @@
                   <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 12px;">Dados detalhados de campanhas, orçamentos e métricas disponíveis via API</p>
                 </div>
               `;
+            } else if (adsAccounts && adsAccounts.error) {
+              // Erro específico (como developer token não configurado)
+              adsDisplay = `
+                <div style="margin: 20px 0; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
+                  <h3 style="margin: 0 0 10px 0; color: #721c24;">🔧 Configuração Necessária:</h3>
+                  <p style="margin: 0; color: #721c24; font-weight: bold;">${adsAccounts.error}</p>
+                  ${adsAccounts.message ? `<p style="margin: 5px 0 0 0; color: #721c24; font-size: 14px;">${adsAccounts.message}</p>` : ''}
+                  ${adsAccounts.details ? `<details style="margin: 10px 0 0 0;"><summary style="color: #721c24; cursor: pointer;">Detalhes técnicos</summary><pre style="background: #f1f1f1; padding: 10px; margin: 5px 0; font-size: 11px; overflow-x: auto;">${adsAccounts.details}</pre></details>` : ''}
+                  <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 12px;">Consulte o arquivo google-ads-permissions.json para instruções detalhadas</p>
+                </div>
+              `;
             } else {
               adsDisplay = `
                 <div style="margin: 20px 0; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
                   <h3 style="margin: 0 0 10px 0; color: #721c24;">⚠️ Google Ads:</h3>
                   <p style="margin: 0; color: #721c24;">Nenhuma conta do Google Ads encontrada ou acesso negado</p>
-                  <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 12px;">Verifique se possui contas ativas no Google Ads</p>
+                  <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 12px;">Verifique se possui contas ativas no Google Ads e se as permissões estão corretas</p>
                 </div>
               `;
             }
@@ -91,29 +99,12 @@
              <p style="margin-top: 20px; color: #666;">Esta janela será fechada automaticamente em alguns segundos.</p>
            `;
           
-          // Enviar dados para o frontend via POST
-          try {
-            await fetch('https://otmizy.com/ads-accounts', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                provider: 'google',
-                timestamp: new Date().toISOString(),
-                data: result
-              })
-            });
-          } catch (postError) {
-            console.warn('Erro ao enviar dados para o frontend:', postError.message);
-          }
-          
           // Notifica a janela principal com try/catch
           try {
             if (window.opener && !window.opener.closed) {
               window.opener.postMessage({
-                type: 'google_auth_success',
-                data: result
+                type: 'GOOGLE_AUTH_SUCCESS',
+                result: result
               }, '*');
             }
           } catch (e) {
@@ -123,8 +114,8 @@
           // Erro
           const message = error || 'Access token not found in URL';
           result = {
-            type: 'GOOGLE_ADS_OAUTH_ERROR',
-            message
+            error: message,
+            timestamp: Date.now()
           };
           
           // Atualiza a UI
@@ -138,8 +129,8 @@
           try {
             if (window.opener && !window.opener.closed) {
               window.opener.postMessage({
-                type: 'google_auth_error',
-                data: result
+                type: 'GOOGLE_AUTH_ERROR',
+                result: result
               }, '*');
             }
           } catch (e) {
@@ -147,17 +138,18 @@
           }
         }
 
-        // Salva o resultado para o front ler
+        // Salva o resultado no localStorage
         localStorage.setItem('google_ads_oauth_result', JSON.stringify(result));
+        localStorage.setItem('google_ads_access_token', accessToken || '');
 
-        // Fecha a janela após delay maior para permitir leitura
+        // Fecha a janela após 3 segundos
         setTimeout(() => {
           try {
             window.close();
           } catch (e) {
             console.log('Não foi possível fechar a janela automaticamente');
           }
-        }, 30000);
+        }, 3000);
         
       } catch (globalError) {
         console.error('Erro no callback do Google:', globalError);

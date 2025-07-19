@@ -33,7 +33,8 @@ module.exports = (req, res) => {
       'https://www.googleapis.com/auth/adwords',
       'https://www.googleapis.com/auth/userinfo.email'
     ],
-    prompt: 'consent'
+    prompt: 'consent',
+    include_granted_scopes: true
   });
 
   res.status(200).json({ authUrl });

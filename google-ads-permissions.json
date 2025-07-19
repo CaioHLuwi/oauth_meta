@@ -1,0 +1,166 @@
+{
+  "google_ads_api_requirements": {
+    "description": "Configurações e permissões necessárias para o Google Ads API funcionar corretamente",
+    "issues_identified": [
+      "Falta do Developer Token nas requisições da API",
+      "Possível falta de permissões adequadas no token OAuth",
+      "Necessidade de configuração adicional no Google Cloud Console"
+    ],
+    "required_components": {
+      "1_developer_token": {
+        "description": "Token de desenvolvedor de 22 caracteres necessário para todas as chamadas da API",
+        "how_to_obtain": "Acesse https://ads.google.com/aw/apicenter com uma conta de gerenciador do Google Ads",
+        "access_levels": {
+          "test_account_access": "Apenas contas de teste - 15.000 operações/dia",
+          "basic_access": "Contas de teste e produção - 15.000 operações/dia",
+          "standard_access": "Contas de teste e produção - operações ilimitadas/dia"
+        },
+        "current_status": "MISSING - Não está sendo enviado nas requisições da API"
+      },
+      "2_oauth_scopes": {
+        "description": "Escopos OAuth2 necessários para autenticação",
+        "required_scopes": [
+          "https://www.googleapis.com/auth/adwords",
+          "https://www.googleapis.com/auth/userinfo.email"
+        ],
+        "current_scopes": [
+          "https://www.googleapis.com/auth/adwords",
+          "https://www.googleapis.com/auth/userinfo.email"
+        ],
+        "status": "CORRECT - Escopos estão configurados corretamente"
+      },
+      "3_oauth_parameters": {
+        "description": "Parâmetros OAuth2 necessários para acesso offline",
+        "required_parameters": {
+          "access_type": "offline",
+          "prompt": "consent",
+          "include_granted_scopes": "true"
+        },
+        "current_parameters": {
+          "access_type": "offline",
+          "prompt": "consent"
+        },
+        "status": "PARTIALLY_CORRECT - Falta include_granted_scopes=true"
+      },
+      "4_google_cloud_project": {
+        "description": "Projeto do Google Cloud Console com OAuth2 configurado",
+        "requirements": [
+          "OAuth consent screen configurado",
+          "Credenciais OAuth2 criadas",
+          "Google Ads API habilitada",
+          "Status de publicação deve ser 'In production' para evitar expiração do refresh token em 7 dias"
+        ],
+        "status": "NEEDS_VERIFICATION - Verificar configurações no Google Cloud Console"
+      },
+      "5_manager_account": {
+        "description": "Conta de gerenciador do Google Ads",
+        "requirements": [
+          "Deve ser uma conta de gerenciador (não conta de teste)",
+          "Deve ter acesso às contas de anúncios que deseja gerenciar",
+          "Deve estar vinculada ao developer token"
+        ],
+        "status": "NEEDS_VERIFICATION - Verificar se a conta usada é de gerenciador"
+      }
+    },
+    "api_headers_required": {
+      "description": "Headers necessários para todas as requisições da Google Ads API",
+      "headers": {
+        "Authorization": "Bearer {access_token}",
+        "developer-token": "{developer_token}",
+        "Content-Type": "application/json"
+      },
+      "current_implementation": {
+        "Authorization": "✅ Implementado",
+        "developer-token": "❌ FALTANDO - Este é o principal problema",
+        "Content-Type": "✅ Implementado"
+      }
+    },
+    "solution_steps": {
+      "step_1": {
+        "title": "Obter Developer Token",
+        "actions": [
+          "Acesse https://ads.google.com/aw/apicenter",
+          "Faça login com uma conta de gerenciador do Google Ads",
+          "Complete o formulário de acesso à API",
+          "Anote o developer token de 22 caracteres"
+        ]
+      },
+      "step_2": {
+        "title": "Adicionar Developer Token ao código",
+        "actions": [
+          "Adicionar GOOGLE_DEVELOPER_TOKEN às variáveis de ambiente",
+          "Modificar o código para incluir o header 'developer-token' nas requisições",
+          "Atualizar a chamada da API no callback.js"
+        ]
+      },
+      "step_3": {
+        "title": "Verificar configurações do Google Cloud",
+        "actions": [
+          "Verificar se o OAuth consent screen está configurado corretamente",
+          "Alterar status de publicação para 'In production' se necessário",
+          "Verificar se a Google Ads API está habilitada no projeto"
+        ]
+      },
+      "step_4": {
+        "title": "Atualizar parâmetros OAuth",
+        "actions": [
+          "Adicionar include_granted_scopes=true aos parâmetros OAuth",
+          "Verificar se access_type=offline está configurado",
+          "Verificar se prompt=consent está configurado"
+        ]
+      },
+      "step_5": {
+        "title": "Testar a implementação",
+        "actions": [
+          "Fazer uma nova autenticação OAuth",
+          "Verificar se listAccessibleCustomers retorna dados",
+          "Verificar logs para erros de autenticação"
+        ]
+      }
+    },
+    "code_changes_needed": {
+      "file": "api/google/callback.js",
+      "changes": [
+        "Adicionar GOOGLE_DEVELOPER_TOKEN às variáveis de ambiente",
+        "Incluir header 'developer-token' na requisição para listAccessibleCustomers",
+        "Adicionar tratamento de erro específico para DEVELOPER_TOKEN_PROHIBITED"
+      ]
+    },
+    "environment_variables": {
+      "required": [
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_DEVELOPER_TOKEN",
+        "APP_URL"
+      ],
+      "current": [
+        "GOOGLE_CLIENT_ID ✅",
+        "GOOGLE_CLIENT_SECRET ✅",
+        "GOOGLE_DEVELOPER_TOKEN ❌ FALTANDO",
+        "APP_URL ✅"
+      ]
+    },
+    "common_errors": {
+      "ACCESS_TOKEN_SCOPE_INSUFFICIENT": {
+        "description": "Token OAuth não tem os escopos necessários",
+        "solution": "Verificar se o escopo https://www.googleapis.com/auth/adwords está incluído"
+      },
+      "DEVELOPER_TOKEN_PROHIBITED": {
+        "description": "Developer token não está permitido para este projeto",
+        "solution": "Verificar se o developer token está associado ao projeto correto do Google Cloud"
+      },
+      "PERMISSION_DENIED": {
+        "description": "Permissões insuficientes",
+        "solution": "Verificar se a conta tem acesso às contas de anúncios e se o developer token tem o nível de acesso adequado"
+      }
+    },
+    "testing_endpoints": {
+      "list_accessible_customers": "https://googleads.googleapis.com/v14/customers:listAccessibleCustomers",
+      "required_headers": {
+        "Authorization": "Bearer {access_token}",
+        "developer-token": "{developer_token}",
+        "Content-Type": "application/json"
+      }
+    }
+  }
+}

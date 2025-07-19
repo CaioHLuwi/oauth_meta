@@ -67,12 +67,20 @@
           let adAccountsDisplay = '';
           if (adAccounts && adAccounts.data && adAccounts.data.length > 0) {
             const accountCount = adAccounts.data.length;
-            const accountsList = adAccounts.data.map(account => 
-              `<li style="margin: 5px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+            const accountsList = adAccounts.data.map(account => {
+              const businessInfo = account.business_manager ? 
+                `<div style="margin-top: 5px; padding: 4px 8px; background: #e3f2fd; border-radius: 3px; font-size: 11px;">
+                  🏢 <strong>BM:</strong> ${account.business_manager.name} (${account.business_manager.id})
+                  <br>📋 <strong>Status:</strong> ${account.business_manager.verification_status}
+                </div>` : 
+                '<div style="margin-top: 5px; padding: 4px 8px; background: #fff3cd; border-radius: 3px; font-size: 11px;">⚠️ Sem Business Manager associado</div>';
+              
+              return `<li style="margin: 8px 0; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
                 <strong>${account.name}</strong> (ID: ${account.id})<br>
-                <small>Status: ${account.account_status} | Moeda: ${account.currency}</small>
-              </li>`
-            ).join('');
+                <small style="color: #666;">Status: ${account.account_status} | Moeda: ${account.currency}</small>
+                ${businessInfo}
+              </li>`;
+            }).join('');
             
             adAccountsDisplay = `
               <div style="margin: 20px 0; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
@@ -178,14 +186,14 @@
           localStorage.setItem('META_ACCESS_TOKEN', accessToken);
         }
 
-        // Fecha a janela após delay maior para permitir leitura
+        // Fecha a janela após 3 segundos
         setTimeout(() => {
           try {
             window.close();
           } catch (e) {
             console.log('Não foi possível fechar a janela automaticamente');
           }
-        }, 30000);
+        }, 3000);
         
       } catch (globalError) {
         console.error('Erro no callback da Meta:', globalError);

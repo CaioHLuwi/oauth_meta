@@ -39,28 +39,7 @@ module.exports = async (req, res) => {
         console.warn('Erro ao buscar informações do usuário Meta:', userInfoError.message);
       }
       
-      // Buscar contas de anúncio
-      try {
-        const adAccountsResponse = await axios.get('https://graph.facebook.com/v23.0/me/adaccounts', {
-          params: {
-            access_token: data.access_token,
-            fields: 'id,name,account_status,currency,timezone_name,business,account_id'
-          }
-        });
-        adAccounts = adAccountsResponse.data;
-      } catch (adAccountsError) {
-        console.warn('Erro ao buscar contas de anúncio Meta:', adAccountsError.message);
-        if (adAccountsError.response?.data?.error) {
-          permissionErrors.push({
-            type: 'ad_accounts',
-            error: adAccountsError.response.data.error,
-            required_permissions: ['ads_read', 'ads_management'],
-            message: 'Para acessar contas de anúncio, são necessárias as permissões: ads_read, ads_management'
-          });
-        }
-      }
-      
-      // Buscar Business Managers
+      // Buscar Business Managers primeiro
       try {
         const businessResponse = await axios.get('https://graph.facebook.com/v23.0/me/businesses', {
           params: {
@@ -69,6 +48,38 @@ module.exports = async (req, res) => {
           }
         });
         businessManagers = businessResponse.data;
+        
+        // Buscar contas de anúncio associadas a cada Business Manager
+        if (businessManagers && businessManagers.data && businessManagers.data.length > 0) {
+          const allAdAccounts = [];
+          
+          for (const business of businessManagers.data) {
+            try {
+              const bmAdAccountsResponse = await axios.get(`https://graph.facebook.com/v23.0/${business.id}/owned_ad_accounts`, {
+                params: {
+                  access_token: data.access_token,
+                  fields: 'id,name,account_status,currency,timezone_name,business,account_id'
+                }
+              });
+              
+              // Adicionar informação do Business Manager a cada conta
+              if (bmAdAccountsResponse.data && bmAdAccountsResponse.data.data) {
+                bmAdAccountsResponse.data.data.forEach(account => {
+                  account.business_manager = {
+                    id: business.id,
+                    name: business.name,
+                    verification_status: business.verification_status
+                  };
+                  allAdAccounts.push(account);
+                });
+              }
+            } catch (bmAdAccountError) {
+              console.warn(`Erro ao buscar contas do BM ${business.id}:`, bmAdAccountError.message);
+            }
+          }
+          
+          adAccounts = { data: allAdAccounts };
+        }
       } catch (businessError) {
         console.warn('Erro ao buscar Business Managers Meta:', businessError.message);
         if (businessError.response?.data?.error) {
@@ -78,6 +89,29 @@ module.exports = async (req, res) => {
             required_permissions: ['business_management'],
             message: 'Para acessar Business Managers, é necessária a permissão: business_management'
           });
+        }
+      }
+      
+      // Fallback: buscar contas de anúncio diretamente se não conseguiu via BM
+      if (!adAccounts || !adAccounts.data || adAccounts.data.length === 0) {
+        try {
+          const adAccountsResponse = await axios.get('https://graph.facebook.com/v23.0/me/adaccounts', {
+            params: {
+              access_token: data.access_token,
+              fields: 'id,name,account_status,currency,timezone_name,business,account_id'
+            }
+          });
+          adAccounts = adAccountsResponse.data;
+        } catch (adAccountsError) {
+          console.warn('Erro ao buscar contas de anúncio Meta:', adAccountsError.message);
+          if (adAccountsError.response?.data?.error) {
+            permissionErrors.push({
+              type: 'ad_accounts',
+              error: adAccountsError.response.data.error,
+              required_permissions: ['ads_read', 'ads_management'],
+              message: 'Para acessar contas de anúncio, são necessárias as permissões: ads_read, ads_management'
+            });
+          }
         }
       }
     }
